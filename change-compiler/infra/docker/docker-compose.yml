@@ -1,0 +1,182 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: cc-postgres
+    environment:
+      POSTGRES_DB: change_compiler
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d change_compiler"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: cc-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: cc-kafka1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,PLAINTEXT_HOST://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_JMX_PORT: 9991
+      KAFKA_JMX_HOSTNAME: kafka1
+    volumes:
+      - kafka1_data:/var/lib/kafka/data
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: cc-kafka2
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9092"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9092,PLAINTEXT_HOST://localhost:19093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_JMX_PORT: 9992
+      KAFKA_JMX_HOSTNAME: kafka2
+    volumes:
+      - kafka2_data:/var/lib/kafka/data
+
+  kafka3:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: cc-kafka3
+    depends_on:
+      - zookeeper
+    ports:
+      - "9094:9092"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9092,PLAINTEXT_HOST://localhost:19094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_JMX_PORT: 9993
+      KAFKA_JMX_HOSTNAME: kafka3
+    volumes:
+      - kafka3_data:/var/lib/kafka/data
+
+  kafka1-jmx:
+    image: sscaling/jmx-prometheus-exporter:0.20.0
+    container_name: cc-kafka1-jmx
+    depends_on:
+      - kafka1
+    environment:
+      CONFIG_YML: |
+        startDelaySeconds: 0
+        lowercaseOutputName: true
+        rules:
+          - pattern: ".*"
+      SERVICE_PORT: 5556
+      JMX_HOST: kafka1
+      JMX_PORT: 9991
+
+  kafka2-jmx:
+    image: sscaling/jmx-prometheus-exporter:0.20.0
+    container_name: cc-kafka2-jmx
+    depends_on:
+      - kafka2
+    environment:
+      CONFIG_YML: |
+        startDelaySeconds: 0
+        lowercaseOutputName: true
+        rules:
+          - pattern: ".*"
+      SERVICE_PORT: 5556
+      JMX_HOST: kafka2
+      JMX_PORT: 9992
+
+  kafka3-jmx:
+    image: sscaling/jmx-prometheus-exporter:0.20.0
+    container_name: cc-kafka3-jmx
+    depends_on:
+      - kafka3
+    environment:
+      CONFIG_YML: |
+        startDelaySeconds: 0
+        lowercaseOutputName: true
+        rules:
+          - pattern: ".*"
+      SERVICE_PORT: 5556
+      JMX_HOST: kafka3
+      JMX_PORT: 9993
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: cc-prometheus
+    volumes:
+      - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - kafka1-jmx
+      - kafka2-jmx
+      - kafka3-jmx
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: cc-backend
+    env_file:
+      - ../../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/change_compiler
+      PROMETHEUS_URL: http://prometheus:9090
+      KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9092,kafka3:9092
+      EXECUTE_REAL_RESTART: "false"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: cc-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  kafka1_data:
+  kafka2_data:
+  kafka3_data:

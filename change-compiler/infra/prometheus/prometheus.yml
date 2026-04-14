@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: backend
+    static_configs:
+      - targets: ["backend:8000"]
+
+  - job_name: kafka-jmx
+    static_configs:
+      - targets:
+          - kafka1-jmx:5556
+          - kafka2-jmx:5556
+          - kafka3-jmx:5556
