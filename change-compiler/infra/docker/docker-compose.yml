@@ -87,7 +87,7 @@ services:
       - kafka3_data:/var/lib/kafka/data
 
   kafka1-jmx:
-    image: sscaling/jmx-prometheus-exporter:0.20.0
+    image: sscaling/jmx-prometheus-exporter:latest
     container_name: cc-kafka1-jmx
     depends_on:
       - kafka1
@@ -102,7 +102,7 @@ services:
       JMX_PORT: 9991
 
   kafka2-jmx:
-    image: sscaling/jmx-prometheus-exporter:0.20.0
+    image: sscaling/jmx-prometheus-exporter:latest
     container_name: cc-kafka2-jmx
     depends_on:
       - kafka2
@@ -117,7 +117,7 @@ services:
       JMX_PORT: 9992
 
   kafka3-jmx:
-    image: sscaling/jmx-prometheus-exporter:0.20.0
+    image: sscaling/jmx-prometheus-exporter:latest
     container_name: cc-kafka3-jmx
     depends_on:
       - kafka3
