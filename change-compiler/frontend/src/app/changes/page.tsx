@@ -51,17 +51,52 @@ export default function ChangesPage() {
   const [execution, setExecution] = useState<ExecuteResult | null>(null);
   const [timeline, setTimeline] = useState<AuditEvent[]>([]);
   const [error, setError] = useState<string>("");
+  const [token, setToken] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem("cc_token") || "";
+  });
 
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+  const authBase = (process.env.NEXT_PUBLIC_AUTH_BASE_URL || "http://localhost:8000").replace(/\/$/, "");
+
+  const authHeaders: HeadersInit = token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+
+  const saveToken = (value: string) => {
+    setToken(value);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("cc_token", value);
+    }
+  };
+
+  const devLogin = async (roles: string[]) => {
+    setError("");
+    const resp = await fetch(`${authBase}/auth/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "demo@company.com", roles }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      setError(data.detail || "Failed to login");
+      return;
+    }
+    saveToken(data.access_token);
+  };
 
   const submitChange = async () => {
     setError("");
     const response = await fetch(`${apiBase}/changes`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders },
       body: JSON.stringify(submission),
     });
     const data = await response.json();
+    if (!response.ok) {
+      setError(data.detail || "Failed to submit change");
+      return;
+    }
     setChangeId(data.change_id);
     setEvaluation(null);
     setExecution(null);
@@ -72,7 +107,10 @@ export default function ChangesPage() {
     if (!changeId) return;
 
     setError("");
-    const response = await fetch(`${apiBase}/changes/${changeId}/evaluate`, { method: "POST" });
+    const response = await fetch(`${apiBase}/changes/${changeId}/evaluate`, {
+      method: "POST",
+      headers: { ...authHeaders },
+    });
     const data = await response.json();
     if (!response.ok) {
       setError(data.detail || "Failed to evaluate change");
@@ -85,7 +123,10 @@ export default function ChangesPage() {
     if (!changeId) return;
 
     setError("");
-    const response = await fetch(`${apiBase}/changes/${changeId}/execute`, { method: "POST" });
+    const response = await fetch(`${apiBase}/changes/${changeId}/execute`, {
+      method: "POST",
+      headers: { ...authHeaders },
+    });
     const data = await response.json();
     if (!response.ok) {
       setError(data.detail || "Failed to execute change");
@@ -93,7 +134,9 @@ export default function ChangesPage() {
       setExecution(data);
     }
 
-    const auditResponse = await fetch(`${apiBase}/changes/${changeId}/audit`);
+    const auditResponse = await fetch(`${apiBase}/changes/${changeId}/audit`, {
+      headers: { ...authHeaders },
+    });
     const auditData = await auditResponse.json();
     setTimeline(auditData);
   };
@@ -102,6 +145,35 @@ export default function ChangesPage() {
     <main>
       <h2>Kafka Broker Restart Workflow</h2>
       <p>Submit, evaluate, and execute a guarded broker restart.</p>
+
+      <section style={{ border: "1px solid #ddd", padding: "1rem", marginBottom: "1rem" }}>
+        <h3>Auth</h3>
+        <p style={{ marginTop: 0 }}>
+          This UI sends a Bearer token. Use dev login buttons for local demo, or paste a JWT.
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button onClick={() => devLogin(["requester", "viewer"])}>Dev login: requester</button>
+          <button onClick={() => devLogin(["approver", "viewer"])}>Dev login: approver</button>
+          <button onClick={() => devLogin(["executor", "viewer"])}>Dev login: executor</button>
+          <button onClick={() => devLogin(["admin"])}>Dev login: admin</button>
+          <button
+            onClick={() => {
+              saveToken("");
+            }}
+          >
+            Clear token
+          </button>
+        </div>
+        <label style={{ display: "block", marginTop: "0.75rem" }}>
+          Token:
+          <input
+            value={token}
+            onChange={(e) => saveToken(e.target.value)}
+            placeholder="paste JWT here"
+            style={{ marginLeft: "0.5rem", width: "min(900px, 90vw)" }}
+          />
+        </label>
+      </section>
 
       <label>
         Broker ID:

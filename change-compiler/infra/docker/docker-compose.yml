@@ -86,51 +86,6 @@ services:
     volumes:
       - kafka3_data:/var/lib/kafka/data
 
-  kafka1-jmx:
-    image: sscaling/jmx-prometheus-exporter:latest
-    container_name: cc-kafka1-jmx
-    depends_on:
-      - kafka1
-    environment:
-      CONFIG_YML: |
-        startDelaySeconds: 0
-        lowercaseOutputName: true
-        rules:
-          - pattern: ".*"
-      SERVICE_PORT: 5556
-      JMX_HOST: kafka1
-      JMX_PORT: 9991
-
-  kafka2-jmx:
-    image: sscaling/jmx-prometheus-exporter:latest
-    container_name: cc-kafka2-jmx
-    depends_on:
-      - kafka2
-    environment:
-      CONFIG_YML: |
-        startDelaySeconds: 0
-        lowercaseOutputName: true
-        rules:
-          - pattern: ".*"
-      SERVICE_PORT: 5556
-      JMX_HOST: kafka2
-      JMX_PORT: 9992
-
-  kafka3-jmx:
-    image: sscaling/jmx-prometheus-exporter:latest
-    container_name: cc-kafka3-jmx
-    depends_on:
-      - kafka3
-    environment:
-      CONFIG_YML: |
-        startDelaySeconds: 0
-        lowercaseOutputName: true
-        rules:
-          - pattern: ".*"
-      SERVICE_PORT: 5556
-      JMX_HOST: kafka3
-      JMX_PORT: 9993
-
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: cc-prometheus
@@ -138,10 +93,6 @@ services:
       - ../prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9090:9090"
-    depends_on:
-      - kafka1-jmx
-      - kafka2-jmx
-      - kafka3-jmx
 
   backend:
     build:

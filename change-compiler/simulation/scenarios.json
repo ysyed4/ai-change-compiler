@@ -1,0 +1,112 @@
+{
+  "scenarios": [
+    {
+      "id": "healthy_restart",
+      "description": "Nominal path with all services up and valid target broker.",
+      "fault": "none",
+      "target_id": "1",
+      "requires_policy": false,
+      "expects": {
+        "decision_one_of": ["allow", "allow_with_constraints"],
+        "final_status_one_of": ["completed", "blocked"],
+        "must_include_events": ["change_submitted", "change_evaluated", "execution_finished"]
+      }
+    },
+    {
+      "id": "broker_not_found",
+      "description": "Target broker does not exist in metadata.",
+      "fault": "none",
+      "target_id": "broker-does-not-exist",
+      "requires_policy": false,
+      "expects": {
+        "decision": "block",
+        "final_status": "blocked",
+        "must_include_events": ["change_submitted", "change_evaluated", "execution_blocked"]
+      }
+    },
+    {
+      "id": "telemetry_unavailable",
+      "description": "Prometheus unavailable causes fallback telemetry and should block.",
+      "fault": "prometheus_down",
+      "target_id": "1",
+      "requires_policy": false,
+      "expects": {
+        "decision": "block",
+        "final_status": "blocked",
+        "must_include_events": ["change_submitted", "change_evaluated", "execution_blocked"]
+      }
+    },
+    {
+      "id": "metadata_unavailable",
+      "description": "Kafka metadata unavailable from backend perspective and should block.",
+      "fault": "kafka_down",
+      "target_id": "1",
+      "requires_policy": false,
+      "expects": {
+        "decision": "block",
+        "final_status": "blocked",
+        "must_include_events": ["change_submitted", "change_evaluated", "execution_blocked"]
+      }
+    },
+    {
+      "id": "policy_hard_stop",
+      "description": "Policy hard stop rule blocks execution regardless of baseline.",
+      "fault": "none",
+      "target_id": "1",
+      "requires_policy": true,
+      "policy": {
+        "name": "sim-hard-stop",
+        "condition_expr": "risk_score >= 0",
+        "enforcement": "hard_stop"
+      },
+      "expects": {
+        "decision": "block",
+        "final_status": "blocked",
+        "must_include_events": ["change_submitted", "change_evaluated", "execution_blocked"]
+      }
+    },
+    {
+      "id": "manual_approval_gate",
+      "description": "Policy manual approval constraint pauses until approver approves.",
+      "fault": "none",
+      "target_id": "1",
+      "requires_policy": true,
+      "policy": {
+        "name": "sim-manual-approval",
+        "condition_expr": "risk_score >= 0",
+        "enforcement": "manual_approval"
+      },
+      "expects": {
+        "decision_one_of": ["allow", "allow_with_constraints"],
+        "must_include_events": ["change_submitted", "change_evaluated", "change_approved", "execution_finished"]
+      }
+    },
+    {
+      "id": "separation_of_duties",
+      "description": "Requester who also has approver role still cannot self-approve.",
+      "fault": "none",
+      "target_id": "1",
+      "requires_policy": true,
+      "policy": {
+        "name": "sim-manual-approval-sod",
+        "condition_expr": "risk_score >= 0",
+        "enforcement": "manual_approval"
+      },
+      "expects": {
+        "self_approve_status": 400
+      }
+    },
+    {
+      "id": "policy_safety_reject",
+      "description": "Unsafe policy expression must be rejected.",
+      "fault": "none",
+      "target_id": "1",
+      "requires_policy": false,
+      "unsafe_policy_expr": "__import__('os').system('echo pwned')",
+      "expects": {
+        "unsafe_policy_create_status": 400
+      }
+    }
+  ]
+}
+

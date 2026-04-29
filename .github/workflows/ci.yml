@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: change_compiler
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d change_compiler"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/change_compiler
+      AUTH_ENABLED: "true"
+      DEV_TOKEN_ENDPOINT_ENABLED: "true"
+      JWT_SECRET: "ci-secret"
+      JWT_ISSUER: "change-compiler"
+      JWT_AUDIENCE: "change-compiler-api"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend deps
+        working-directory: change-compiler/backend
+        run: pip install -r requirements.txt
+      - name: Run migrations
+        working-directory: change-compiler/backend
+        run: alembic upgrade head
+      - name: Run backend tests
+        working-directory: change-compiler/backend
+        run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install frontend deps
+        working-directory: change-compiler/frontend
+        run: npm install
+      - name: Build frontend
+        working-directory: change-compiler/frontend
+        run: npm run build
+

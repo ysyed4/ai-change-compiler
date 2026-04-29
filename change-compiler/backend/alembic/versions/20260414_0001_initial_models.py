@@ -43,11 +43,6 @@ enforcement_type_enum = sa.Enum(
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    change_status_enum.create(bind, checkfirst=True)
-    decision_type_enum.create(bind, checkfirst=True)
-    enforcement_type_enum.create(bind, checkfirst=True)
-
     op.create_table(
         "change_requests",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),

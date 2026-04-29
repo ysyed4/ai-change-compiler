@@ -11,7 +11,8 @@ class ChangeRequestCreate(BaseModel):
     change_type: str = "restart_component"
     target: ChangeTarget
     reason: str
-    requested_by: str = "operator"
+    requested_by: str | None = None
+    org_id: str = "default-org"
     rollback_available: bool = True
 
 
@@ -24,7 +25,11 @@ class ChangeRequestRead(ORMBase):
     reason: str
     status: str
     requested_by: str
+    org_id: str
     requested_time: datetime
+    requires_manual_approval: bool
+    approved_by: str | None = None
+    approved_at: datetime | None = None
     decision: str | None = None
     risk_score: int | None = None
     explanations: list[str]
@@ -47,3 +52,9 @@ class ChangeExecuteResponse(BaseModel):
     change_id: UUID
     status: str
     execution_mode: str
+
+
+class ChangeApproveResponse(BaseModel):
+    change_id: UUID
+    status: str
+    approved_by: str

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from app.models.policy import Policy
+from app.services.safe_expr import UnsafeExpressionError, eval_bool
 
 
 @dataclass
@@ -18,15 +19,14 @@ class PolicyCompiler:
         explanations: list[str] = []
         policy_hits: list[dict] = []
 
-        safe_globals: dict[str, object] = {"__builtins__": {}}
         for policy in policies:
             if not policy.enabled:
                 continue
 
             matched = False
             try:
-                matched = bool(eval(policy.condition_expr, safe_globals, context))
-            except Exception:
+                matched = bool(eval_bool(policy.condition_expr, context))
+            except UnsafeExpressionError:
                 matched = False
 
             policy_hits.append(

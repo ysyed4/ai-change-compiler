@@ -13,6 +13,7 @@ class AuditLog(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     change_request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("change_requests.id", ondelete="CASCADE"))
+    org_id: Mapped[str] = mapped_column(String(128), default="default-org")
     event_type: Mapped[str] = mapped_column(String(128))
     stage: Mapped[str] = mapped_column(String(64))
     payload: Mapped[dict] = mapped_column(JSON, default=dict)

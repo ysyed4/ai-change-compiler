@@ -1,7 +1,13 @@
 from logging.config import fileConfig
+from pathlib import Path
+import sys
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+# Ensure `/app` (project root in container) is importable when Alembic
+# executes from inside the `alembic` directory context.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core.config import settings
 from app.db.base import Base
@@ -38,5 +44,7 @@ def run_migrations_online() -> None:
             context.run_migrations()
 
 
-run_migrations_offline()
-run_migrations_online()
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

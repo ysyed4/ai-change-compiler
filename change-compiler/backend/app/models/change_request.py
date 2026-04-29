@@ -21,8 +21,12 @@ class ChangeRequest(Base):
     status: Mapped[ChangeStatus] = mapped_column(Enum(ChangeStatus), default=ChangeStatus.received)
 
     requested_by: Mapped[str] = mapped_column(String(128), default="unknown")
+    org_id: Mapped[str] = mapped_column(String(128), default="default-org")
     requested_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     rollback_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    requires_manual_approval: Mapped[bool] = mapped_column(Boolean, default=False)
+    approved_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     decision: Mapped[DecisionType | None] = mapped_column(Enum(DecisionType), nullable=True)
     risk_score: Mapped[int | None] = mapped_column(Integer, nullable=True)

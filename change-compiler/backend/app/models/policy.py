@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Enum, String, Text
+from sqlalchemy import Boolean, DateTime, Enum, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,6 +20,9 @@ class Policy(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     scope_platform: Mapped[str] = mapped_column(String(64), default="kafka")
     scope_change_type: Mapped[str] = mapped_column(String(128), default="restart_component")
+    org_id: Mapped[str] = mapped_column(String(128), default="default-org")
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    supersedes_policy_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

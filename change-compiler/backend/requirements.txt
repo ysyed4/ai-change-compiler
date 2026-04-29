@@ -9,3 +9,4 @@ requests
 confluent-kafka
 pytest
 httpx
+PyJWT

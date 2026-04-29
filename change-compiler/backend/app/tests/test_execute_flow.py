@@ -89,6 +89,7 @@ def test_execute_flow_writes_audit_logs(monkeypatch):
                 metadata_source_status="real",
             ),
             [],
+            [],
             {},
         ),
     )

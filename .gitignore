@@ -1,0 +1,6 @@
+.DS_Store
+**/__pycache__/
+*.pyc
+change-compiler/frontend/node_modules/
+change-compiler/frontend/.next/
+change-compiler/simulation/artifacts/
